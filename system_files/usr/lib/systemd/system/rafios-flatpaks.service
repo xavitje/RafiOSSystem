@@ -1,0 +1,17 @@
+[Unit]
+Description=RafiOS: standaard-apps installeren (Prism Launcher e.d.)
+Wants=network-online.target
+After=network-online.target
+# Niet draaien in een container of zonder flatpak
+ConditionPathExists=/usr/bin/flatpak
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/rafios-flatpaks
+# Lukt het niet (bijv. geen internet)? Dan volgende opstart opnieuw.
+Restart=no
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=multi-user.target

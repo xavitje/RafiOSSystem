@@ -7,3 +7,4 @@ _build-*/**
 
 # RafiTune
 rafitune/rafitune
+rafibench/rafibench-analyse

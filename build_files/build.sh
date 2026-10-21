@@ -12,7 +12,7 @@ cp -avf "/ctx/system_files"/. /
 ### 2. Naam: RafiOS
 # We passen alleen de zichtbare naam aan. ID en ID_LIKE blijven staan,
 # want updates en hulpscripts van de basis kijken daarnaar.
-RAFIOS_VERSION="0.1"
+RAFIOS_VERSION="0.2"
 sed -i \
     -e 's/^NAME=.*/NAME="RafiOS"/' \
     -e "s/^PRETTY_NAME=.*/PRETTY_NAME=\"RafiOS ${RAFIOS_VERSION}\"/" \
@@ -24,7 +24,8 @@ grep -q '^RAFIOS_VERSION=' /usr/lib/os-release \
     || echo "RAFIOS_VERSION=\"${RAFIOS_VERSION}\"" >> /usr/lib/os-release
 
 ### 3. Rechten voor RafiOS-scripts
-chmod 0755 /usr/bin/rafi-exe /usr/bin/rafi-check
+chmod 0755 /usr/bin/rafi-exe /usr/bin/rafi-check /usr/bin/rafi-bench \
+    /usr/libexec/rafios-flatpaks
 
 ### 4. Dubbelklik op .exe en .msi -> rafi-exe
 # Voeg onze koppelingen toe aan de bestaande lijst van de basis (niet overschrijven).
@@ -36,13 +37,36 @@ fi
 sed -i '/^\[Default Applications\]/r /usr/share/rafios/mimeapps-rafios.list' "$MIME_LIJST"
 update-desktop-database /usr/share/applications || true
 
-### 5. Extra pakketten
+### 5. Gaming-basis (fase 2)
+# Minecraft via Prism Launcher: wordt bij de eerste opstart van Flathub
+# geïnstalleerd (lijst: /usr/share/rafios/flatpaks.list).
+systemctl enable rafios-flatpaks.service
+
+# MangoHud: RafiOS-overlay, maar alleen als de basis zelf geen instelling heeft
+if [ ! -f /etc/MangoHud.conf ]; then
+    cp /usr/share/rafios/MangoHud.conf /etc/MangoHud.conf
+fi
+
+# rafibench-analyse (C) bouwen en installeren
+# gcc wordt daarna weer verwijderd, zodat het image klein blijft
+GCC_WAS_ER=1
+rpm -q gcc >/dev/null 2>&1 || GCC_WAS_ER=0
+[ "$GCC_WAS_ER" -eq 1 ] || dnf5 install -y gcc make
+cp -r /ctx/rafibench /tmp/rafibench # /ctx is alleen-lezen, dus bouwen in /tmp
+make -C /tmp/rafibench PREFIX=/usr install
+[ "$GCC_WAS_ER" -eq 1 ] || dnf5 remove -y gcc
+# Controle: GameMode, MangoHud en Gamescope moeten in de basis zitten
+for PROG in gamemoderun mangohud gamescope; do
+    command -v "$PROG" || echo "WAARSCHUWING: $PROG ontbreekt in de basis"
+done
+
+### 6. Extra pakketten
 # Komen uit de Fedora- of RPM Fusion-repo's. Voeg hier toe wat je mist.
 dnf5 install -y \
     htop \
     fastfetch
 
-### 6. Onnodige software eruit (fase 1, punt 3)
+### 7. Onnodige software eruit (fase 1, punt 3)
 # Eerst in de VM uitzoeken wat er draait:
 #   systemctl list-unit-files --state=enabled
 #   systemctl --user list-unit-files --state=enabled
@@ -51,5 +75,5 @@ dnf5 install -y \
 # systemctl disable ModemManager.service  # 4G-modems
 # dnf5 remove -y <pakket>
 
-### 7. Services aanzetten
+### 8. Services aanzetten
 systemctl enable podman.socket

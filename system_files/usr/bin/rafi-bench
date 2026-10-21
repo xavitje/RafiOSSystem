@@ -1,0 +1,113 @@
+#!/bin/bash
+# rafi-bench – meet hoe soepel een game loopt en vergelijkt met eerdere metingen.
+#
+# Gebruik:
+#   rafi-bench <naam> [-t sec] [-w sec] [-l label] -- <commando>
+#       Start de game met MangoHud, meet een tijdje en bewaart het resultaat.
+#       -t  hoe lang meten (standaard 60 seconden)
+#       -w  hoe lang wachten voor het meten begint (standaard 10, voor laadschermen)
+#       -l  korte omschrijving van wat je veranderd hebt (bijv. rafitune-aan)
+#
+#   rafi-bench <naam> --resultaten     alle eerdere metingen van deze game
+#   rafi-bench --analyse <log.csv>     een bestaande MangoHud-log bekijken
+#
+# Steam: zet bij Eigenschappen > Opstartopties:
+#   rafi-bench cs2 -- %command%
+#
+# Tip voor eerlijke metingen: elke keer dezelfde plek in het spel, dezelfde
+# instellingen, en de game al één keer gestart (shaders zijn dan klaar).
+
+set -euo pipefail
+
+ANALYSE="${RAFIBENCH_ANALYSE:-rafibench-analyse}"
+BASIS="${RAFIBENCH_MAP:-$HOME/Games/RafiOS/bench}"
+
+fout() { echo "rafi-bench: $1" >&2; exit 1; }
+
+gebruik() {
+    sed -n '3,16p' "$0" | sed 's/^# \{0,1\}//'
+    exit "${1:-0}"
+}
+
+[ $# -ge 1 ] || gebruik 1
+case "$1" in
+    -h|--help) gebruik 0 ;;
+    --analyse)
+        [ $# -ge 2 ] || fout "geef een logbestand op"
+        exec "$ANALYSE" "$2"
+        ;;
+esac
+
+NAAM="$(printf '%s' "$1" | tr -c 'A-Za-z0-9._-' '_')"
+shift
+MAP="$BASIS/$NAAM"
+TABEL="$MAP/resultaten.tsv"
+
+if [ "${1:-}" = "--resultaten" ]; then
+    [ -f "$TABEL" ] || fout "nog geen metingen voor '$NAAM'"
+    column -t -s $'\t' "$TABEL" 2>/dev/null || cat "$TABEL"
+    exit 0
+fi
+
+DUUR=60
+WACHT=10
+LABEL="-"
+while [ $# -gt 0 ] && [ "$1" != "--" ]; do
+    case "$1" in
+        -t) DUUR="${2:?}"; shift 2 ;;
+        -w) WACHT="${2:?}"; shift 2 ;;
+        -l) LABEL="$(printf '%s' "${2:?}" | tr -c 'A-Za-z0-9._-' '_')"; shift 2 ;;
+        *)  fout "onbekende optie '$1' (vergeten: -- voor het commando?)" ;;
+    esac
+done
+[ "${1:-}" = "--" ] || fout "zet -- voor het commando van de game"
+shift
+[ $# -ge 1 ] || fout "geen commando om te starten"
+[[ "$DUUR" =~ ^[0-9]+$ && "$WACHT" =~ ^[0-9]+$ ]] || fout "-t en -w willen hele seconden"
+
+command -v "$ANALYSE" >/dev/null 2>&1 || fout "$ANALYSE niet gevonden"
+
+mkdir -p "$MAP"
+LOGMAP="$(mktemp -d "${TMPDIR:-/tmp}/rafi-bench.XXXXXX")"
+trap 'rm -rf "$LOGMAP"' EXIT
+
+# MangoHud laten loggen: na WACHT seconden beginnen, DUUR seconden lang
+export MANGOHUD=1
+export MANGOHUD_CONFIG="fps,frametime,frame_timing,autostart_log=${WACHT},log_duration=${DUUR},output_folder=${LOGMAP}"
+
+echo "rafi-bench: meten van '$NAAM' over ${WACHT}s, ${DUUR}s lang. Stop de game daarna gewoon."
+if command -v mangohud >/dev/null 2>&1; then
+    mangohud "$@" || true
+else
+    "$@" || true
+fi
+
+# Nieuwste log zoeken (MangoHud maakt soms ook een *_summary.csv; die slaan we over)
+LOG="$(find "$LOGMAP" -maxdepth 1 -name '*.csv' ! -name '*summary*' -printf '%T@ %p\n' \
+    | sort -n | tail -1 | cut -d' ' -f2-)"
+[ -n "$LOG" ] || fout "geen meting gevonden. Speelde je langer dan ${WACHT} seconden?"
+
+# Eerdere meting zoeken om mee te vergelijken
+VORIGE="$(find "$MAP" -maxdepth 1 -name '*.csv' -printf '%f\n' | sort | tail -1)"
+
+STEMPEL="$(date +%Y-%m-%d_%H%M%S)"
+BEWAAR="$MAP/${STEMPEL}_${LABEL}.csv"
+cp "$LOG" "$BEWAAR"
+
+echo
+echo "=== $NAAM – $STEMPEL ($LABEL) ==="
+if [ -n "$VORIGE" ]; then
+    "$ANALYSE" --vorige "$MAP/$VORIGE" "$BEWAAR"
+else
+    "$ANALYSE" "$BEWAAR"
+    echo
+    echo "  Eerste meting voor '$NAAM'. De volgende wordt hiermee vergeleken."
+fi
+
+# Regel toevoegen aan de tabel met alle metingen
+if [ ! -f "$TABEL" ]; then
+    printf 'datum\tlabel\tframes\tseconden\tfps_gem\tlow_1\tlow_0.1\n' > "$TABEL"
+fi
+printf '%s\t%s\t%s\n' "$STEMPEL" "$LABEL" "$("$ANALYSE" --tsv "$BEWAAR")" >> "$TABEL"
+echo
+echo "  Bewaard in $MAP"

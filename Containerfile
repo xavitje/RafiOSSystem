@@ -6,6 +6,7 @@
 FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
+COPY rafibench /rafibench
 
 # Stap 2: de basis.
 # Bazzite (Universal Blue) heeft al: gesigneerde kernel, NVIDIA/AMD-drivers,

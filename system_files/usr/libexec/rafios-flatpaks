@@ -1,0 +1,46 @@
+#!/bin/bash
+# rafios-flatpaks – installeert de apps uit /usr/share/rafios/flatpaks.list.
+# Draait als systeemservice na het opstarten (zie rafios-flatpaks.service).
+# Onthoudt welke versie van de lijst al gedaan is, zodat hij niet elke keer draait.
+
+set -uo pipefail
+
+LIJST="${RAFIOS_FLATPAK_LIJST:-/usr/share/rafios/flatpaks.list}"
+STAAT_MAP="${RAFIOS_STAAT_MAP:-/var/lib/rafios}"
+KLAAR="$STAAT_MAP/flatpaks.klaar"
+
+mkdir -p "$STAAT_MAP"
+
+# Vingerafdruk van de lijst: verandert als je een app toevoegt
+HUIDIG="$(sha256sum "$LIJST" | cut -d' ' -f1)"
+if [ -f "$KLAAR" ] && [ "$(cat "$KLAAR")" = "$HUIDIG" ]; then
+    echo "Flatpak-lijst is al verwerkt."
+    exit 0
+fi
+
+# Apps uit de lijst halen (commentaar en lege regels eruit)
+mapfile -t APPS < <(sed -e 's/#.*//' -e 's/[[:space:]]//g' "$LIJST" | grep -v '^$')
+
+if [ "${#APPS[@]}" -eq 0 ]; then
+    echo "$HUIDIG" > "$KLAAR"
+    exit 0
+fi
+
+# Flathub moet bestaan (Bazzite heeft hem al, maar voor de zekerheid)
+flatpak remote-add --system --if-not-exists flathub \
+    https://dl.flathub.org/repo/flathub.flatpakrepo
+
+MISLUKT=0
+for APP in "${APPS[@]}"; do
+    echo "Installeren: $APP"
+    if ! flatpak install --system --noninteractive --or-update flathub "$APP"; then
+        echo "Mislukt: $APP" >&2
+        MISLUKT=1
+    fi
+done
+
+if [ "$MISLUKT" -eq 0 ]; then
+    # Alleen markeren als klaar als alles gelukt is; anders volgende opstart opnieuw
+    echo "$HUIDIG" > "$KLAAR"
+fi
+exit "$MISLUKT"

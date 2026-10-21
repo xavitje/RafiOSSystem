@@ -1,0 +1,9 @@
+# RafiOS – apps die bij de eerste opstart van Flathub worden geïnstalleerd.
+# Eén app-ID per regel. Regels met # worden overgeslagen.
+# Zoek ID's op https://flathub.org (staat in de URL van een app).
+#
+# Nieuwe app toegevoegd? Dan installeert RafiOS hem bij de volgende opstart
+# na de update, want de lijst is veranderd.
+
+# Minecraft (Java) – beheert Java-versies, mods en meerdere installaties
+org.prismlauncher.PrismLauncher
