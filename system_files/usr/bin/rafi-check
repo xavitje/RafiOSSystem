@@ -1,0 +1,105 @@
+#!/bin/bash
+# rafi-check – controleert of deze pc klaar is voor EAC Linux v2 (Fortnite).
+# Leest alleen informatie uit; verandert niets aan je systeem.
+# Bron van de eisen: https://onlineservices.epicgames.com/news/introducing-easy-anti-cheat-linux-v2
+
+GOED=0
+FOUT=0
+ONBEKEND=0
+
+ok()     { printf '  \033[32m[OK]\033[0m      %s\n' "$1"; GOED=$((GOED + 1)); }
+nee()    { printf '  \033[31m[NEE]\033[0m     %s\n' "$1"; [ -n "${2:-}" ] && printf '            -> %s\n' "$2"; FOUT=$((FOUT + 1)); }
+weetniet() { printf '  \033[33m[?]\033[0m       %s\n' "$1"; [ -n "${2:-}" ] && printf '            -> %s\n' "$2"; ONBEKEND=$((ONBEKEND + 1)); }
+
+CMDLINE="$(cat /proc/cmdline 2>/dev/null)"
+SEC=/sys/kernel/security
+
+echo "RafiOS – controle Fortnite-eisen (EAC Linux v2)"
+echo
+
+# 1. Secure Boot
+if command -v mokutil >/dev/null 2>&1; then
+    if mokutil --sb-state 2>/dev/null | grep -qi "SecureBoot enabled"; then
+        ok "Secure Boot staat aan"
+    else
+        nee "Secure Boot staat uit" "Zet Secure Boot aan in de BIOS"
+    fi
+elif [ -d /sys/firmware/efi ]; then
+    SB_BYTE="$(od -An -t u1 -j4 -N1 /sys/firmware/efi/efivars/SecureBoot-* 2>/dev/null | tr -d ' ')"
+    if [ "$SB_BYTE" = "1" ]; then ok "Secure Boot staat aan"
+    elif [ "$SB_BYTE" = "0" ]; then nee "Secure Boot staat uit" "Zet Secure Boot aan in de BIOS"
+    else weetniet "Secure Boot: kon status niet lezen"; fi
+else
+    nee "Geen UEFI gevonden (oude BIOS-modus)" "Installeer in UEFI-modus"
+fi
+
+# 2. Gesigneerde kernel (alleen te zien via Secure Boot + lockdown; echte check doet EAC zelf)
+if [ -r "$SEC/lockdown" ] && grep -q '\[integrity\]\|\[confidentiality\]' "$SEC/lockdown"; then
+    ok "Kernel weigert ongesigneerde modules (lockdown actief)"
+else
+    weetniet "Gesigneerde kernel: niet zeker" "Gebruik de kernel van RafiOS zelf, geen eigen build"
+fi
+
+# 3. TPM 2.0
+if [ -e /dev/tpmrm0 ] || [ -e /dev/tpm0 ]; then
+    VERSIE="$(cat /sys/class/tpm/tpm0/tpm_version_major 2>/dev/null)"
+    if [ "$VERSIE" = "2" ] || [ -z "$VERSIE" ]; then
+        ok "TPM gevonden${VERSIE:+ (versie $VERSIE)}"
+    else
+        nee "TPM is versie $VERSIE, Epic eist 2.0"
+    fi
+else
+    nee "Geen TPM gevonden" "Zet TPM (fTPM/PTT) aan in de BIOS"
+fi
+
+# 4. Measured boot
+if [ -r "$SEC/tpm0/binary_bios_measurements" ] || [ -e "$SEC/tpm0/binary_bios_measurements" ]; then
+    ok "Measured boot: opstartlog in TPM aanwezig"
+else
+    weetniet "Measured boot: log niet leesbaar" "Probeer opnieuw met: sudo rafi-check"
+fi
+
+# 5. IOMMU
+if [ -n "$(ls -A /sys/class/iommu 2>/dev/null)" ]; then
+    if echo "$CMDLINE" | grep -qE '(^| )iommu=pt( |$)'; then
+        nee "IOMMU staat aan maar in passthrough-modus" "Haal iommu=pt weg uit de opstartopties"
+    else
+        ok "IOMMU staat aan (zonder passthrough)"
+    fi
+else
+    nee "IOMMU staat uit" "Zet VT-d (Intel) of AMD-Vi/IOMMU aan in de BIOS"
+fi
+
+# 6. Kernel lockdown, integrity-modus
+if [ -r "$SEC/lockdown" ]; then
+    if grep -q '\[integrity\]' "$SEC/lockdown"; then
+        ok "Kernel lockdown: integrity"
+    elif grep -q '\[confidentiality\]' "$SEC/lockdown"; then
+        ok "Kernel lockdown: confidentiality (strenger dan nodig)"
+    else
+        nee "Kernel lockdown staat uit" "Opstartoptie lockdown=integrity (komt in Competitief-modus)"
+    fi
+else
+    weetniet "Kernel lockdown: niet leesbaar"
+fi
+
+# 7. Kexec uit
+if [ "$(cat /proc/sys/kernel/kexec_load_disabled 2>/dev/null)" = "1" ]; then
+    ok "Kexec staat uit"
+else
+    nee "Kexec staat aan" "Moet uit bij opstarten (komt in Competitief-modus)"
+fi
+
+# 8. BPF LSM
+if [ -r "$SEC/lsm" ] && tr ',' '\n' < "$SEC/lsm" | grep -qx bpf; then
+    ok "BPF LSM is actief"
+else
+    nee "BPF LSM is niet actief" "Opstartoptie lsm=...,bpf (komt in Competitief-modus)"
+fi
+
+echo
+echo "Resultaat: $GOED goed, $FOUT nee, $ONBEKEND onbekend (van 8 eisen)."
+if [ "$FOUT" -eq 0 ] && [ "$ONBEKEND" -eq 0 ]; then
+    echo "Deze pc lijkt klaar voor EAC Linux v2."
+fi
+echo "Let op: Epics eigen controle is leidend; dit is een hulpmiddel."

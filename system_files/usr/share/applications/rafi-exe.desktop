@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Windows-programma starten (RafiOS)
+Comment=Start .exe- en .msi-bestanden met Proton
+Exec=rafi-exe %f
+Icon=applications-games
+Terminal=false
+NoDisplay=true
+MimeType=application/x-ms-dos-executable;application/x-msdownload;application/x-msi;application/x-ms-installer;application/vnd.microsoft.portable-executable;
+Categories=Game;Utility;

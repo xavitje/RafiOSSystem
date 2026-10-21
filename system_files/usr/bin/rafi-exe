@@ -1,0 +1,54 @@
+#!/bin/bash
+# rafi-exe – start een Windows-programma (.exe) of installer (.msi) op RafiOS.
+# Wordt aangeroepen als je dubbelklikt op een .exe- of .msi-bestand.
+#
+# Elk programma krijgt een eigen "Windows-map" (prefix) in
+#   ~/Games/RafiOS/<naam-van-het-bestand>
+# zodat programma's elkaar niet in de weg zitten.
+
+set -euo pipefail
+
+melding() {
+    # Laat een melding zien op de desktop als dat kan, anders in de terminal
+    if command -v notify-send >/dev/null 2>&1; then
+        notify-send -a "RafiOS" -i applications-games "RafiOS" "$1" || true
+    fi
+    echo "rafi-exe: $1" >&2
+}
+
+if [ $# -lt 1 ] || [ ! -f "$1" ]; then
+    melding "Geen bestand opgegeven. Gebruik: rafi-exe <bestand.exe|bestand.msi>"
+    exit 1
+fi
+
+BESTAND="$(realpath "$1")"
+shift
+NAAM="$(basename "$BESTAND")"
+NAAM="${NAAM%.*}"
+# Alleen veilige tekens in de mapnaam
+NAAM="$(printf '%s' "$NAAM" | tr -c 'A-Za-z0-9._-' '_')"
+
+PREFIX_MAP="${RAFIOS_PREFIX_DIR:-$HOME/Games/RafiOS}/$NAAM"
+mkdir -p "$PREFIX_MAP"
+export WINEPREFIX="$PREFIX_MAP"
+export GAMEID="${GAMEID:-umu-default}"
+
+# .msi-bestanden gaan via de Windows-installer (msiexec)
+case "${BESTAND,,}" in
+    *.msi) OPDRACHT=(msiexec /i "$BESTAND") ;;
+    *)     OPDRACHT=("$BESTAND") ;;
+esac
+
+# Werkmap = map van het bestand (veel installers verwachten dat)
+cd "$(dirname "$BESTAND")"
+
+if command -v umu-run >/dev/null 2>&1; then
+    melding "Start $NAAM met Proton…"
+    exec umu-run "${OPDRACHT[@]}" "$@"
+elif command -v wine >/dev/null 2>&1; then
+    melding "Start $NAAM met Wine…"
+    exec wine "${OPDRACHT[@]}" "$@"
+else
+    melding "Proton (umu-run) en Wine zijn niet gevonden. Installeer umu-launcher."
+    exit 1
+fi
