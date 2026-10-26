@@ -47,8 +47,8 @@ if [ ! -f /etc/MangoHud.conf ]; then
     cp /usr/share/rafios/MangoHud.conf /etc/MangoHud.conf
 fi
 
-# Controle: GameMode, MangoHud en Gamescope moeten in de basis zitten
-for PROG in gamemoderun mangohud gamescope; do
+# Controle: MangoHud en Gamescope moeten in de basis zitten
+for PROG in mangohud gamescope; do
     command -v "$PROG" || echo "WAARSCHUWING: $PROG ontbreekt in de basis"
 done
 

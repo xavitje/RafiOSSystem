@@ -15,7 +15,7 @@ $(PROGRAMMA): $(BRONNEN) src/meting.h
 	$(CC) $(CFLAGS) -o $@ $(BRONNEN)
 
 test: $(PROGRAMMA)
-	./test/test.sh ./$(PROGRAMMA)
+	bash test/test.sh ./$(PROGRAMMA)
 
 install: $(PROGRAMMA)
 	install -Dm755 $(PROGRAMMA) $(DESTDIR)$(PREFIX)/bin/$(PROGRAMMA)

@@ -11,7 +11,7 @@ COPY rafitune /rafitune
 
 # Stap 2: de basis.
 # Bazzite (Universal Blue) heeft al: gesigneerde kernel, NVIDIA/AMD-drivers,
-# Steam, Gamescope, GameMode, MangoHud en Proton-tools.
+# Steam, Gamescope, MangoHud en Proton-tools. (Geen GameMode: dat doet RafiTune.)
 # De Universal Blue-sleutel staat op Epics lijst voor EAC Linux v2 (Fortnite).
 #
 # Andere opties om te testen in fase 1:
