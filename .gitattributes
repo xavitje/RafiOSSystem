@@ -1,0 +1,5 @@
+# Altijd Linux-regeleindes (LF), ook als je op Windows werkt.
+# Scripts met Windows-regeleindes (CRLF) werken niet in RafiOS.
+* text=auto eol=lf
+*.png binary
+*.jpg binary

@@ -1,0 +1,28 @@
+[Unit]
+Description=RafiTune: performance-daemon van RafiOS
+After=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/rafitune daemon
+Restart=on-failure
+RestartSec=5
+
+# /run/rafitune: status en de oude CPU-waarden. Bewaren bij een crash,
+# zodat de volgende start de CPU kan terugzetten.
+RuntimeDirectory=rafitune
+RuntimeDirectoryPreserve=yes
+
+# Alleen de rechten die RafiTune nodig heeft:
+#   CAP_SYS_NICE    voorrang (nice/ioprio) van games en achtergrondtaken aanpassen
+#   CAP_SYS_PTRACE  /proc/<pid>/environ lezen van processen van de gebruiker (Steam-AppID)
+#   CAP_DAC_*       /sys en /proc lezen en schrijven
+CapabilityBoundingSet=CAP_SYS_NICE CAP_SYS_PTRACE CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
+MemoryMax=32M
+
+[Install]
+WantedBy=multi-user.target
