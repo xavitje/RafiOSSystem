@@ -1,0 +1,11 @@
+[Unit]
+Description=RafiOS: eenmalige instellingen voor deze gebruiker
+# Vóór de desktop-autostart, zodat Steam al bij deze login niet meer opstart
+Before=graphical-session-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/rafios-user-setup
+
+[Install]
+WantedBy=default.target

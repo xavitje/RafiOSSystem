@@ -100,6 +100,13 @@ build $target_image=image_name $tag=default_tag:
 
     BUILD_ARGS=()
     LABELS=()
+
+    # RafiOS: welke variant (naam) en op welke basis (AMD/Intel of NVIDIA)
+    BUILD_ARGS+=("--build-arg" "IMAGE_NAME=${target_image}")
+    BUILD_ARGS+=("--build-arg" "IMAGE_VENDOR={{ repo_organization }}")
+    if [[ -n "${BASE_IMAGE:-}" ]]; then
+        BUILD_ARGS+=("--build-arg" "BASE_IMAGE=${BASE_IMAGE}")
+    fi
     if [[ -z "$(git status -s)" ]]; then
         GIT_SHA=$(git rev-parse --short HEAD)
         LABELS+=("--label" "io.artifacthub.package.readme-url=https://raw.githubusercontent.com/{{ repo_organization }}/{{ image_name }}/${GIT_SHA}/README.md")

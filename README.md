@@ -1,128 +1,126 @@
 # RafiOS
 
-Een snel, aanpasbaar game-OS. De Linux-kernel (via Fedora/Universal Blue) regelt de hardware; alles wat je ziet en gebruikt wordt stap voor stap zelfgemaakt.
+Een snel, aanpasbaar game-OS. De Linux-kernel en drivers komen van Bazzite (Fedora); alles wat je ziet en gebruikt wordt stap voor stap zelf gemaakt.
 
-Status: **fase 1, 2 en 3 voorbereid** (versie 0.3). Nog te testen op echte hardware.
+**Versie 0.4** · fase 1 t/m 4 klaar · getest in Hyper-V
 
-## Wat zit er al in
+## Twee versies
 
-| Onderdeel | Waar | Wat het doet |
+Kies de versie die bij je **videokaart** past:
+
+| Versie | Voor | Image |
 | --- | --- | --- |
-| Basis | `Containerfile` | Bazzite (Universal Blue): gesigneerde kernel, GPU-drivers, Steam, Gamescope, GameMode, MangoHud |
-| Naam | `build_files/build.sh` | Het systeem heet "RafiOS 0.3" |
-| Dubbelklik op .exe/.msi | `system_files/usr/bin/rafi-exe` | Start Windows-programma's met Proton; elk programma krijgt een eigen map in `~/Games/RafiOS` |
-| Fortnite-check | `system_files/usr/bin/rafi-check` | Controleert de 8 eisen van EAC Linux v2; verandert niets |
-| Minecraft | `system_files/usr/share/rafios/flatpaks.list` | Prism Launcher wordt bij de eerste opstart automatisch geïnstalleerd |
-| Fps-overlay | `system_files/usr/share/rafios/MangoHud.conf` | RafiOS-stijl voor MangoHud; aan/uit met rechter-Shift + F12 |
-| Benchmark | `rafibench/` + `system_files/usr/bin/rafi-bench` | Meet gemiddelde fps, 1% low en 0,1% low en vergelijkt met je vorige meting |
-| RafiTune | `rafitune/` + `/etc/rafitune/rafitune.conf` | Daemon in C: herkent games, zet de CPU op volle snelheid, geeft de game voorrang en remt achtergrondtaken af; zet alles terug na de game |
+| `rafios` | AMD- of Intel-videokaart, en virtuele machines (Hyper-V) | `ghcr.io/xavitje/rafios:latest` |
+| `rafios-nvidia` | NVIDIA GTX 16xx (zoals de GTX 1650), RTX 20xx en nieuwer | `ghcr.io/xavitje/rafios-nvidia:latest` |
 
-## Mappen
+Ze zijn verder precies hetzelfde. GitHub bouwt ze allebei bij elke wijziging.
+
+## Wat zit erin
+
+| Onderdeel | Wat het doet |
+| --- | --- |
+| **RafiHub** | Je eigen game-launcher: Steam-games en losse `.exe`'s op één plek, met hoesjes, zoeken en controller-bediening |
+| **RafiTune** | Herkent games en geeft ze voorrang: CPU op volle snelheid, achtergrondtaken afgeremd. Zet alles terug na de game |
+| **rafi-bench** | Meet je fps (gemiddeld, 1% low, 0,1% low) en vergelijkt met de vorige keer |
+| **rafi-exe** | Dubbelklik op een `.exe` of `.msi` start hem met Proton, elk programma in een eigen map |
+| **rafi-check** | Controleert de 8 eisen van de Fortnite-anticheat (EAC Linux v2) |
+| **Branding** | RafiOS-naam, logo in fastfetch, eigen welkomstbericht in de terminal, Steam start niet meer vanzelf |
+| **Minecraft** | Prism Launcher wordt bij de eerste opstart geïnstalleerd |
+
+## RafiOS installeren
+
+Je installeert eerst Bazzite en stapt daarna met één opdracht over naar RafiOS. Daarna komen alle updates van jouw GitHub.
+
+### 1. Bazzite installeren
+
+1. Ga naar **bazzite.gg** en kies bij het downloaden je videokaart:
+   - laptop met GTX 1650: kies **NVIDIA** (*GTX 16xx and newer*);
+   - AMD/Intel of Hyper-V: kies **AMD / Intel**.
+2. Zet de ISO op een USB-stick met **Rufus** of **balenaEtcher** (op Windows).
+3. Start de laptop vanaf de USB-stick (meestal F12, F2 of Esc bij het opstarten) en installeer Bazzite.
+4. Bij het eerste opstarten verschijnt een **blauw scherm** (MokManager): kies **Enroll MOK** → **Continue** → **Yes**, typ `universalblue` en kies **Reboot**. Mis je dit, zie dan *Problemen* hieronder.
+
+### 2. Overstappen naar RafiOS
+
+Open **Konsole** in Bazzite en typ (voor de laptop met NVIDIA):
 
 ```
-Containerfile          het hele OS in één bestand
-build_files/build.sh   aanpassingen tijdens het bouwen
-system_files/          bestanden die 1-op-1 in het OS komen
-rafibench/             benchmark-analyse in C, met tests (fase 2)
-rafitune/              performance-daemon in C, met tests (fase 3)
-disk_config/           instellingen voor een installatie-ISO
-.github/workflows/     automatisch bouwen op GitHub
-docs/                  Engelse uitleg van de Universal Blue-template
+sudo bootc switch ghcr.io/xavitje/rafios-nvidia:latest
+systemctl reboot
 ```
 
-## Thuis aan de slag
+Voor AMD/Intel of Hyper-V gebruik je `ghcr.io/xavitje/rafios:latest`.
 
-> **Op Windows?** Doe alle opdrachten hieronder in **Git Bash** (komt mee met [Git for Windows](https://git-scm.com/download/win)), in de map van dit project.
+Na de herstart: typ `fastfetch`. Staat er **RafiOS 0.4** en het R-logo, dan draai je RafiOS.
 
-### 1. Je GitHub-naam invullen
+Je computernaam is nog `bazzite`. Veranderen:
 
-Vervang `JOUW-GITHUB-NAAM` door je GitHub-gebruikersnaam (in kleine letters):
-
-```bash
-cd rafios
-sed -i 's/JOUW-GITHUB-NAAM/jouwnaam/' image-template.env disk_config/*.toml
+```
+sudo hostnamectl set-hostname rafios
 ```
 
-### 2. Repository maken en uploaden
+### Problemen
 
-Maak op GitHub een **openbare** repository `rafios` (leeg, zonder README). De map heeft al een git-geschiedenis, dus je hoeft alleen te uploaden:
+| Probleem | Oplossing |
+| --- | --- |
+| `bad shim signature` bij het opstarten | De sleutel is niet ingeschreven. Zet Secure Boot even uit in de BIOS, start op, typ `ujust enroll-secure-boot-key` (wachtwoord `universalblue`), zet Secure Boot weer aan en volg het blauwe scherm. |
+| `Temporary failure in name resolution` | Geen internet. In Hyper-V: VM-instellingen → Netwerkadapter → *Default Switch*. |
+| Toetsen zitten op de verkeerde plek | Systeeminstellingen → Keyboard → Layouts: zet **English (US)** erin en haal de rest weg. |
+| Update maakte iets stuk | Kies bij het opstarten de vorige versie, of typ `sudo bootc rollback`. |
 
-```bash
-git add -A
-git commit -m "Mijn GitHub-naam ingevuld"
-git remote add origin https://github.com/jouwnaam/rafios.git
-git push -u origin main
+## RafiOS aanpassen
+
+Zo komt een wijziging van jouw pc in RafiOS:
+
+1. Pas bestanden aan in `D:\Rafios`.
+2. In **GitHub Desktop**: beschrijving typen → **Commit to main** → **Push origin**.
+3. GitHub bouwt beide versies opnieuw (tabblad **Actions**, ongeveer een half uur). Alle tests moeten slagen, anders komt er geen nieuwe versie.
+4. Op de pc met RafiOS: `sudo bootc upgrade` en opnieuw opstarten. (RafiOS kijkt ook zelf regelmatig naar updates.)
+
+Belangrijke bestanden:
+
+```
+Containerfile               het hele OS: basis, bouwstap, eindimage
+build_files/build.sh        aanpassingen aan het systeem (naam, branding, services)
+build_files/bouw-programmas.sh   bouwt en test RafiBench, RafiTune en RafiHub
+system_files/               bestanden die 1-op-1 in het OS komen (bijv. /etc/rafitune/rafitune.conf)
+rafihub/                    game-launcher (C++ en Qt/QML)
+rafitune/                   performance-daemon (C)
+rafibench/                  fps-analyse (C)
+.github/workflows/build.yml bouwt rafios en rafios-nvidia
 ```
 
-> De commits staan op naam van "Rafi" met je Gmail-adres. Liever het privé-adres van GitHub? Zet dat met `git config user.email` en doe `git rebase -r --root --exec "git commit --amend --no-edit --reset-author"` vóór het uploaden.
+## De programma's gebruiken
 
-### 3. Signeersleutel maken
+### RafiHub
 
-GitHub Actions bouwt alleen als het image gesigneerd kan worden. Installeer [cosign](https://docs.sigstore.dev/cosign/system_config/installation/) en de GitHub CLI (`gh`), en doe in de map `rafios`:
+Staat in het menu onder **Games**, of typ `rafihub`.
 
-```bash
-COSIGN_PASSWORD="" cosign generate-key-pair
-gh secret set SIGNING_SECRET < cosign.key
-git add cosign.pub
-git commit -m "Publieke signeersleutel"
-git push
+- **Spelen:** klik dubbel, of Enter, of **A** op je controller.
+- **Zoeken:** Ctrl+F of **Y**. **Filteren:** Alles / Steam / Eigen games.
+- **Eigen game toevoegen:** *+ Game toevoegen* → kies een `.exe`, `.msi` of Linux-programma. Hoesje mag je zelf kiezen.
+- **Benchmark:** *Spelen met benchmark* (of **B** / **X**). Bij Steam-games kopieert RafiHub de opstartoptie voor `rafi-bench`; die plak je in Steam bij *Eigenschappen > Opstartopties*.
+- Onderaan zie je of **RafiTune** bezig is.
+
+Je eigen games staan in `~/.config/rafihub/games.json`.
+
+### RafiTune
+
+Draait vanzelf op de achtergrond.
+
+```
+rafitune status          # wat doet RafiTune nu?
+sudo rafitune scan       # welke games en achtergrondtaken ziet hij?
+journalctl -u rafitune -f    # live meekijken
 ```
 
-> **Let op:** `cosign.key` is geheim en mag nooit naar GitHub. Hij staat al in `.gitignore`. Bewaar hem ergens veilig.
+Instellingen en profielen per game: `/etc/rafitune/rafitune.conf` (met uitleg erin). Na een wijziging: `rafitune test-config` en `sudo systemctl restart rafitune`.
 
-### 4. Wachten op de build
+### rafi-bench: de winst van RafiTune meten
 
-Kijk op GitHub bij het tabblad **Actions**. Een groen vinkje betekent dat het image klaar staat op `ghcr.io/jouwnaam/rafios`.
+Meet elke game minstens twee keer per situatie, op dezelfde plek in het spel:
 
-### 5. Testen in een VM
-
-1. Installeer Bazzite in een VM (GNOME Boxes of virt-manager), zoals in het projectplan.
-2. Open in de VM een terminal en wissel naar RafiOS:
-   ```bash
-   sudo bootc switch ghcr.io/jouwnaam/rafios:latest
-   systemctl reboot
-   ```
-3. Na de herstart controleren:
-   ```bash
-   fastfetch          # moet "RafiOS 0.3" laten zien
-   rafi-check         # Fortnite-eisen (in een VM zijn veel "NEE" normaal)
-   ```
-4. Download een klein Windows-programma (bijvoorbeeld een installer) en dubbelklik erop.
-
-Iets stuk? Bij het opstarten kun je de vorige versie kiezen, of: `sudo bootc rollback`.
-
-### 6. Fase 2 testen
-
-1. **Minecraft:** na de eerste opstart staat Prism Launcher in het menu (even geduld, hij installeert op de achtergrond). Status bekijken: `systemctl status rafios-flatpaks`.
-2. **Fps-overlay:** start een game, druk op rechter-Shift + F12.
-3. **Benchmark:** zet in Steam bij een game onder *Eigenschappen > Opstartopties*:
-   ```
-   rafi-bench naam-van-de-game -- %command%
-   ```
-   Speel 70 seconden (10 wachten + 60 meten) en sluit de game. In een terminal zie je het resultaat met `rafi-bench naam-van-de-game --resultaten`.
-4. **Game-modus:** kijk bij het inlogscherm of er een sessie *Steam Gaming Mode* is (komt uit Bazzite).
-
-Elke meting komt in `~/Games/RafiOS/bench/<game>/`. Gebruik `-l` om te noteren wat je veranderd hebt, bijvoorbeeld `rafi-bench cs2 -l rafitune-aan -- %command%`. Zo zie je in fase 3 precies wat RafiTune oplevert.
-
-**Hoe de cijfers werken:**
-- *Gemiddelde fps*: alle frames gedeeld door de tijd.
-- *1% low*: de gemiddelde fps van de traagste 1% frames. Dit voel je als haperen, dus belangrijker dan het gemiddelde.
-- *Verschil onder 3%* is meestal meetruis. Meet dan nog een keer.
-
-### 7. Fase 3 testen: RafiTune
-
-RafiTune start automatisch. Controleren:
-
-```bash
-systemctl status rafitune     # draait hij?
-rafitune status               # wat doet hij nu?
-sudo rafitune scan            # welke games en achtergrondtaken ziet hij?
-journalctl -u rafitune -f     # live meekijken (start daarna een game)
 ```
-
-**De winst meten** (dit is de mijlpaal van fase 3). Meet elke game minstens 2 keer per situatie, zelfde plek in het spel:
-
-```bash
 sudo systemctl stop rafitune
 # Steam-opstartopties: rafi-bench cs2 -l zonder-rafitune -- %command%
 sudo systemctl start rafitune
@@ -130,46 +128,21 @@ sudo systemctl start rafitune
 rafi-bench cs2 --resultaten
 ```
 
-Kijk vooral naar **1% low**. Verwacht geen wonderen: op een snelle pc met een lege achtergrond is de winst klein. Het verschil zie je vooral als er iets op de achtergrond draait (een update, bestanden indexeren) of op een laptop die normaal zuinig draait.
+Kijk vooral naar **1% low**: dat voel je als haperen. Een verschil onder 3% is meestal meetruis.
 
-**Instellingen** staan in `/etc/rafitune/rafitune.conf`, met uitleg erin. Na een wijziging: `rafitune test-config` en `sudo systemctl restart rafitune`. Wil je eerst zien wat RafiTune zou doen zonder dat er iets verandert: `sudo systemctl stop rafitune && sudo rafitune daemon --proef`.
+## Zelf bouwen en testen (Linux)
 
-**Hoe RafiTune werkt:**
-
-| Als een game start | Na de game |
-| --- | --- |
-| CPU-governor en EPP op `performance` | Terug naar de oude waarde, maar alleen als niets anders (zoals GameMode) hem intussen veranderd heeft |
-| Elke thread van de game voorrang (standaard nice -5) | Game is weg, niets terug te zetten |
-| Achtergrondtaken (indexeren, updates) nice 19 en schijf op *idle* | Terug naar hun oude voorrang |
-
-Crasht RafiTune midden in een game, dan zet de volgende start de CPU terug (de oude waarden staan in `/run/rafitune/cpu-origineel`).
-
-### 8. Zelf bouwen en testen
-
-```bash
-cd rafitune && make test     # 75 tests met een nep-/proc en nep-/sys
-cd ../rafibench && make test # 17 tests
+```
+cd rafitune && make test    # 75 tests met een nep-/proc en nep-/sys
+cd rafibench && make test   # 17 tests
+cd rafihub && make test     # kern + interface (Qt 6 en CMake nodig)
 ```
 
-Deze tests draaien ook automatisch bij elke image-build: faalt er één, dan komt er geen nieuwe RafiOS-versie.
+Een screenshot van RafiHub zonder scherm: `QT_QPA_PLATFORM=offscreen rafihub --screenshot rafihub.png`.
 
 ## Volgende stappen
 
-Fase 1:
-
-- [ ] Lijst maken van wat er standaard draait (`systemctl list-unit-files --state=enabled`) en onnodige services uitzetten in `build.sh`
-- [ ] Eigen logo en opstartscherm
-- [ ] Kiezen: blijft Bazzite de basis, of `bazzite-nvidia` / `base-main`?
-- [ ] Testen op een echte (tweede) schijf
-
-Fase 2:
-
-- [ ] Prism Launcher installeert vanzelf en Minecraft start
-- [ ] Een Steam-game en een losse `.exe` draaien goed
-- [ ] Eerste benchmark van 2–3 vaste games: dit is je nulmeting voor fase 3
-
-Fase 3:
-
-- [ ] `rafitune status` laat de game zien zodra je speelt
-- [ ] Meting met en zonder RafiTune voor 2–3 games (zie stap 7)
-- [ ] Profielen in `rafitune.conf` toevoegen voor je eigen games
+- [ ] RafiOS 0.4 in de VM: `sudo bootc upgrade`, herstarten, branding en RafiHub bekijken
+- [ ] Laptop (GTX 1650): Bazzite NVIDIA installeren en overstappen naar `rafios-nvidia`
+- [ ] Op de laptop: games spelen en met `rafi-bench` meten met en zonder RafiTune
+- [ ] Fase 5: RafiShell, de eigen desktop

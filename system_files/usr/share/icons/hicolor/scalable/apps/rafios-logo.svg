@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="achtergrond" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4EA1FF"/>
+      <stop offset="1" stop-color="#B04CFF"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#achtergrond)"/>
+  <!-- De letter R: staander, boog en poot -->
+  <path d="M84 196V60h52a40 40 0 0 1 0 80H84" fill="none" stroke="#fff"
+        stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M136 140l40 56" fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round"/>
+</svg>

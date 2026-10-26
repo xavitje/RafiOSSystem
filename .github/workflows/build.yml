@@ -22,8 +22,18 @@ concurrency:
 
 jobs:
   build_push:
-    name: Build and push image
+    name: Build and push ${{ matrix.image_name }}
     runs-on: ubuntu-26.04
+
+    # RafiOS heeft twee varianten. Ze worden tegelijk gebouwd.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image_name: rafios          # AMD/Intel en virtuele machines
+            base_image: ghcr.io/ublue-os/bazzite:stable
+          - image_name: rafios-nvidia   # NVIDIA GTX 16xx / RTX en nieuwer
+            base_image: ghcr.io/ublue-os/bazzite-nvidia-open:stable
 
     permissions:
       contents: read
@@ -49,7 +59,7 @@ jobs:
       - name: Image Name
         id: image-name
         run: |
-          IMAGE_NAME=$(just image_name)
+          IMAGE_NAME=${{ matrix.image_name }}
 
           echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
 
@@ -69,6 +79,8 @@ jobs:
       # This actually builds the container image
       - name: Build Image
         id: build-image
+        env:
+          BASE_IMAGE: ${{ matrix.base_image }}
         run: |
           just build \
             ${IMAGE_NAME} \

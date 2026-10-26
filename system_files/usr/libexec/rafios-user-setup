@@ -1,0 +1,27 @@
+#!/bin/bash
+# rafios-user-setup – eenmalige RafiOS-instellingen per gebruiker.
+# Draait bij het inloggen (rafios-user-setup.service, als de gebruiker zelf).
+#
+# Elke stap draait één keer: daarna staat er een markering in
+# ~/.local/state/rafios/. Zet je iets daarna zelf weer aan, dan blijft dat zo.
+
+set -uo pipefail
+
+STAAT="${XDG_STATE_HOME:-$HOME/.local/state}/rafios"
+AUTOSTART="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+mkdir -p "$STAAT"
+
+# Stap 1: Steam niet meer automatisch starten.
+# Bazzite zet bij elke nieuwe gebruiker een autostart voor Steam neer.
+# We halen alleen díe weg (herkenbaar aan "-silent"), en bewaren een kopie.
+# Weer aanzetten: Steam > Instellingen > Interface > "Steam starten bij opstarten".
+if [ ! -e "$STAAT/steam-autostart.klaar" ]; then
+    BESTAND="$AUTOSTART/steam.desktop"
+    if [ -f "$BESTAND" ] && grep -q -- "-silent" "$BESTAND"; then
+        mv "$BESTAND" "$STAAT/steam-autostart.desktop.bewaard"
+        echo "Steam start niet meer automatisch (kopie in $STAAT)"
+    fi
+    touch "$STAAT/steam-autostart.klaar"
+fi
+
+exit 0

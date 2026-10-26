@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/qml">
+        <file>Main.qml</file>
+    </qresource>
+    <qresource prefix="/">
+        <file alias="rafihub.svg">../data/rafihub.svg</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=RafiHub
+GenericName=Game-launcher
+Comment=Al je games op één plek: Steam en losse .exe's
+Exec=rafihub
+Icon=rafihub
+Terminal=false
+Categories=Game;
+Keywords=games;steam;launcher;spelen;rafios;
+StartupWMClass=rafihub
