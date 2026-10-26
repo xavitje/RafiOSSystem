@@ -1,6 +1,7 @@
 // RafiHub – gamepad.h
-// Controller-ondersteuning via SDL2. Zonder SDL2 (of zonder controller) doet
-// deze klasse gewoon niets, en werkt RafiHub met muis en toetsenbord.
+// Controller-ondersteuning via SDL2, die pas bij het starten geladen wordt.
+// Zonder SDL2 (of zonder controller) doet deze klasse niets, en werkt RafiHub
+// met muis en toetsenbord.
 
 #pragma once
 
@@ -35,9 +36,9 @@ private:
     QElapsedTimer m_klok;
     bool m_verbonden = false;
     QString m_naam;
+    bool m_actief = false; // SDL2 geladen en gestart
     void *m_pad = nullptr; // SDL_GameController*
-    int m_dx = 0, m_dy = 0;         // knoppen (d-pad)
-    int m_stickX = 0, m_stickY = 0; // linker stick
+    quint32 m_knoppen = 0; // welke knoppen vorige keer ingedrukt waren
     int m_vorigeX = 0, m_vorigeY = 0;
     qint64 m_volgendeHerhaling = 0;
 };

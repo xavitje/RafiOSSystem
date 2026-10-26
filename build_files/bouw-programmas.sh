@@ -5,13 +5,14 @@
 
 set -ouex pipefail
 
-# Gereedschap om te bouwen. Via "pkgconfig(...)" en "cmake(...)" kiest dnf zelf
-# het juiste pakket, ook als Fedora pakketnamen verandert.
+# Gereedschap om te bouwen. Via "cmake(...)" kiest dnf zelf het juiste pakket,
+# ook als Fedora pakketnamen verandert. (Geen SDL2-pakket: Bazzite blokkeert de
+# Mesa-pakketten van Fedora waar dat van afhangt. RafiHub laadt SDL2 bij het starten.)
 dnf5 install -y \
     gcc gcc-c++ make cmake \
     'cmake(Qt6Core)' 'cmake(Qt6Gui)' 'cmake(Qt6Qml)' 'cmake(Qt6Quick)' \
     'cmake(Qt6QuickControls2)' 'cmake(Qt6Test)' \
-    'pkgconfig(sdl2)' qt6-qtsvg
+    qt6-qtsvg
 
 # RafiBench en RafiTune (C)
 for PROGRAMMA in rafibench rafitune; do

@@ -9,12 +9,6 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Test)
 
-# Controller-ondersteuning via SDL2 (optioneel: zonder SDL2 werkt alles behalve de controller)
-find_package(PkgConfig)
-if(PkgConfig_FOUND)
-    pkg_check_modules(SDL2 IMPORTED_TARGET sdl2)
-endif()
-
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
@@ -33,13 +27,8 @@ target_link_libraries(rafihubkern PUBLIC Qt6::Core Qt6::Gui)
 add_executable(rafihub src/main.cpp src/gamepad.cpp qml/qml.qrc)
 target_link_libraries(rafihub PRIVATE rafihubkern Qt6::Qml Qt6::Quick Qt6::QuickControls2)
 target_compile_definitions(rafihub PRIVATE RAFIHUB_VERSIE="${PROJECT_VERSION}")
-if(SDL2_FOUND)
-    target_link_libraries(rafihub PRIVATE PkgConfig::SDL2)
-    target_compile_definitions(rafihub PRIVATE HEEFT_SDL2)
-    message(STATUS "RafiHub: controller-ondersteuning (SDL2) staat aan")
-else()
-    message(STATUS "RafiHub: geen SDL2 gevonden, controller-ondersteuning staat uit")
-endif()
+# Controller: SDL2 wordt pas bij het starten geladen (zie src/gamepad.cpp),
+# dus er is geen SDL2-ontwikkelpakket nodig om te bouwen.
 
 # Tests: 'make test' (of ctest)
 enable_testing()
